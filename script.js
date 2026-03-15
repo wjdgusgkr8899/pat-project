@@ -432,7 +432,13 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchProducts();
 
   navButtons.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.target)));
-  navLinks.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.target)));
+  navLinks.forEach(link => link.addEventListener('click', (e) => {
+    const target = link.dataset.target || link.getAttribute('href')?.replace('#', '');
+    if (target) {
+      e.preventDefault();
+      activateSection(target);
+    }
+  }));
   
   // Mix sample products on shuffle (since we don't shuffle DB yet)
   shuffleShopBtn?.addEventListener('click', () => renderProducts([...sampleProducts].sort(() => Math.random() - 0.5)));
