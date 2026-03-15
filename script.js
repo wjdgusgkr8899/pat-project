@@ -1,17 +1,9 @@
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAHfSIpXRqC8nQUf2FQKV2vr-SqHKLnvm4",
-  authDomain: "pet-find-board.firebaseapp.com",
-  projectId: "pet-find-board",
-  storageBucket: "pet-find-board.firebasestorage.app",
-  messagingSenderId: "776657483918",
-  appId: "1:776657483918:web:ba7e8a7d4380653daf71df",
-  measurementId: "G-KHZYD01KKX"
-};
+// Supabase Configuration
+const SUPABASE_URL = 'https://spopgxbmsjwosmqsdyzs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwb3BneGJtc2p3b3NtcXNkeXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTE0NTgsImV4cCI6MjA4OTE2NzQ1OH0.lNwaLDQXwhWIkPX_u5Jm3O-pe9OUAlTkT2Tcog86n3w';
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Initialize Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const reportForm = document.getElementById('reportForm');
 const messageForm = document.getElementById('messageForm');
@@ -45,65 +37,115 @@ const sampleProducts = [
 
 function formatTime(ts) {
   if (!ts) return '';
-  return new Intl.DateTimeFormat('ko', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(ts);
+  // Supabase timestamps are ISO strings
+  return new Intl.DateTimeFormat('ko', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ts));
 }
 
-// --- Cloud Real-time Listeners (Firestore) ---
+// --- Supabase Data Logic ---
 
-// Real-time Reports
-db.collection('reports').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+async function fetchReports() {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching reports:', error);
+    return;
+  }
+
+  renderReportsList(data);
+}
+
+function renderReportsList(reports) {
   reportList.innerHTML = '';
-  const reports = [];
-  snapshot.forEach(doc => reports.push({ id: doc.id, ...doc.data() }));
-
-  if (!reports.length) {
+  if (!reports || !reports.length) {
     reportList.innerHTML = '<p class="hint">아직 제보가 없습니다.</p>';
     return;
   }
-  reports.forEach(({ name, type, lastSeen, photo }, idx) => {
+
+  reports.forEach((item, idx) => {
     const card = document.createElement('article');
     card.className = 'report-card';
     card.dataset.index = idx;
     card.innerHTML = `
-      <div class="report-card__thumb">${photo ? `<img src="${photo}" alt="${name}">` : '<span>IMG</span>'}</div>
+      <div class="report-card__thumb">${item.photo ? `<img src="${item.photo}" alt="${item.name}">` : '<span>IMG</span>'}</div>
       <div class="report-card__info">
-        <div class="chip">${type}</div>
-        <h3>${name}</h3>
-        <p class="report-card__meta">마지막 위치: ${lastSeen}</p>
+        <div class="chip">${item.type}</div>
+        <h3>${item.name}</h3>
+        <p class="report-card__meta">마지막 위치: ${item.last_seen || item.lastSeen}</p>
       </div>
     `;
     // Store data for detail view
-    card._reportData = { name, type, lastSeen, photo };
+    card._reportData = { 
+        name: item.name, 
+        type: item.type, 
+        lastSeen: item.last_seen || item.lastSeen, 
+        photo: item.photo,
+        contact: item.contact,
+        features: item.features,
+        createdAt: item.created_at
+    };
     reportList.appendChild(card);
   });
-});
+}
 
-// Real-time Messages
-db.collection('messages').orderBy('createdAt', 'desc').limit(50).onSnapshot(snapshot => {
+async function fetchMessages() {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('Error fetching messages:', error);
+    return;
+  }
+
+  renderMessagesList(data);
+}
+
+function renderMessagesList(messages) {
   messageList.innerHTML = '';
-  const messages = [];
-  snapshot.forEach(doc => messages.push(doc.data()));
-
-  if (!messages.length) {
+  if (!messages || !messages.length) {
     messageList.innerHTML = '<p class="hint">첫 메시지를 남겨보세요.</p>';
     return;
   }
-  messages.forEach(({ nickname, text, createdAt }) => {
+
+  messages.forEach((item) => {
     const li = document.createElement('li');
     li.className = 'message';
     li.innerHTML = `
-      <div class="avatar">${(nickname || '익명').slice(0, 2).toUpperCase()}</div>
+      <div class="avatar">${(item.nickname || '익명').slice(0, 2).toUpperCase()}</div>
       <div class="message__body">
-        <strong>${nickname}</strong>
-        <p class="message__meta">${formatTime(createdAt)}</p>
-        <p>${text}</p>
+        <strong>${item.nickname}</strong>
+        <p class="message__meta">${formatTime(item.created_at)}</p>
+        <p>${item.text}</p>
       </div>
     `;
     messageList.appendChild(li);
   });
-});
+}
 
-// --- Forms Submission (to Cloud) ---
+// Subscribe to Realtime changes
+supabase
+  .channel('public:reports')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reports' }, payload => {
+    // Refresh list on new insert
+    fetchReports();
+  })
+  .subscribe();
+
+supabase
+  .channel('public:messages')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+    // Refresh list on new insert
+    fetchMessages();
+  })
+  .subscribe();
+
+
+// --- Forms Submission (to Supabase) ---
 
 reportForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -111,21 +153,22 @@ reportForm?.addEventListener('submit', async (e) => {
   const entry = {
     name: data.get('name') || '',
     type: data.get('type') || '기타',
-    lastSeen: data.get('lastSeen') || '',
+    last_seen: data.get('lastSeen') || '',
     contact: data.get('contact') || '',
     features: data.get('features') || '',
     photo: photoPreview.dataset.src || '',
-    createdAt: Date.now(),
+    // created_at is handled by default in database
   };
 
-  try {
-    await db.collection('reports').add(entry);
+  const { error } = await supabase.from('reports').insert([entry]);
+
+  if (error) {
+    console.error('Error adding report:', error);
+    alert('제보 등록에 실패했습니다.');
+  } else {
     reportForm.reset();
     photoPreview.innerHTML = '사진을 선택해주세요';
     delete photoPreview.dataset.src;
-  } catch (err) {
-    console.error("Error adding report: ", err);
-    alert("제보 등록에 실패했습니다.");
   }
 });
 
@@ -135,15 +178,16 @@ messageForm?.addEventListener('submit', async (e) => {
   const entry = {
     nickname: data.get('nickname') || '익명',
     text: data.get('text') || '',
-    createdAt: Date.now(),
+    // created_at is handled by default in database
   };
 
-  try {
-    await db.collection('messages').add(entry);
+  const { error } = await supabase.from('messages').insert([entry]);
+
+  if (error) {
+    console.error('Error adding message:', error);
+    alert('메시지 전송에 실패했습니다.');
+  } else {
     messageForm.reset();
-  } catch (err) {
-    console.error("Error adding message: ", err);
-    alert("메시지 전송에 실패했습니다.");
   }
 });
 
@@ -338,6 +382,21 @@ function initMap() {
 }
 
 // Shop Logic
+async function fetchProducts() {
+  // Try to fetch from DB, fallback to sample
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('id', { ascending: true });
+    
+  if (error || !data || !data.length) {
+    // If table is empty or error, use sample products
+    renderProducts(sampleProducts);
+  } else {
+    renderProducts(data);
+  }
+}
+
 function renderProducts(list) {
   if (!productGrid) return;
   productGrid.innerHTML = '';
@@ -366,8 +425,15 @@ function activateSection(targetId) {
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
-  renderProducts(sampleProducts);
+  
+  // Initial Fetch
+  fetchReports();
+  fetchMessages();
+  fetchProducts();
+
   navButtons.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.target)));
   navLinks.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.target)));
+  
+  // Mix sample products on shuffle (since we don't shuffle DB yet)
   shuffleShopBtn?.addEventListener('click', () => renderProducts([...sampleProducts].sort(() => Math.random() - 0.5)));
 });
