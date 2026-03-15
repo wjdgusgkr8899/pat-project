@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>미아찾기 | 반려동물 발견 공유 허브</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="bg-bubbles"></div>
+  <header class="hero">
+    <div class="hero__text">
+      <p class="eyebrow">미아 + 발견 + 연결</p>
+      <h1>미아찾기</h1>
+      <p class="lede">실종 신고, 제보, 주변 동물병원, 용품 추천까지 한 곳에서 처리할 수 있는 반려동물 커뮤니티 허브입니다.</p>
+      <div class="hero__actions">
+        <button type="button" class="btn primary nav-link" data-target="report">실종 제보하기</button>
+        <button type="button" class="btn ghost nav-link" data-target="map">동물병원 지도 보기</button>
+      </div>
+    </div>
+    <div class="hero__card">
+      <div class="badge">NEW</div>
+      <div class="hero__pet">
+        <img src="https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=400&q=80" alt="happy dog">
+      </div>
+      <p class="hero__note">사진과 특징을 함께 남기면 훨씬 빨리 찾을 수 있어요.</p>
+    </div>
+  </header>
+
+  <nav class="cat-nav">
+    <button type="button" class="cat-btn active" data-target="report">실종 제보</button>
+    <button type="button" class="cat-btn" data-target="messages">게시판</button>
+    <button type="button" class="cat-btn" data-target="map">동물병원 지도</button>
+    <button type="button" class="cat-btn" data-target="shop">용품</button>
+  </nav>
+
+  <main>
+    <section id="report" class="panel section active">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Report</p>
+          <h2>실종 제보 올리기</h2>
+          <p class="hint">이름 + 유형 + 마지막 위치를 남겨주시면 카드가 생성돼요. (필수 항목)</p>
+        </div>
+        <button id="clearReports" class="btn pill subtle">전체 삭제</button>
+      </div>
+      <form id="reportForm" class="form">
+        <div class="form__grid">
+          <label class="field">
+            <span>반려동물 이름</span>
+            <input name="name" required placeholder="예) 몽이">
+          </label>
+          <label class="field">
+            <span>종</span>
+            <select name="type">
+              <option>강아지</option>
+              <option>고양이</option>
+              <option>기타</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>마지막으로 본 위치</span>
+            <input name="lastSeen" required placeholder="예) 서울시 종로구 세종대로 11">
+          </label>
+          <label class="field">
+            <span>연락처</span>
+            <input name="contact" required placeholder="010-1234-5678">
+          </label>
+        </div>
+        <label class="field">
+          <span>특징</span>
+          <textarea name="features" rows="3" placeholder="털 색, 목줄 색상, 특이 행동 등"></textarea>
+        </label>
+        <label class="field uploader">
+          <span>사진 업로드</span>
+          <input type="file" accept="image/*" name="photo" id="photoInput">
+          <div class="uploader__preview" id="photoPreview">사진을 선택해주세요</div>
+        </label>
+        <button class="btn primary" type="submit">카드 만들기</button>
+      </form>
+      <div id="reportList" class="card-grid"></div>
+    </section>
+
+    <section id="messages" class="panel section">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Message</p>
+          <h2>실종/목격 게시판</h2>
+          <p class="hint">닉네임과 메시지를 남겨 서로 정보를 교환하세요. (필수 항목)</p>
+        </div>
+        <button id="clearMessages" class="btn pill subtle">전체 삭제</button>
+      </div>
+      <form id="messageForm" class="form compact">
+        <input name="nickname" required placeholder="닉네임">
+        <input name="text" required placeholder="제보/목격 내용을 작성하세요">
+        <button class="btn primary" type="submit">올리기</button>
+      </form>
+      <ul id="messageList" class="message-list"></ul>
+    </section>
+
+    <section id="map" class="panel section">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Map</p>
+          <h2>동물병원 지도</h2>
+          <p class="hint">현재 위치를 기준으로 주변 병원을 찾습니다. 검색어나 반경을 조절하고, 위치 권한이 거부되면 주소 검색으로 이용하세요.</p>
+        </div>
+        <div class="status" id="mapStatus">위치 확인 중..</div>
+      </div>
+      <div class="map-controls">
+        <div class="field">
+          <span>원하는 위치로 검색</span>
+          <div class="input-row">
+            <input id="locationInput" placeholder="예: 서울역, 강남구청, 부산 서면">
+            <button type="button" class="btn ghost pill" id="searchLocation">검색</button>
+          </div>
+          <p class="hint">반경을 크게 하면 더 많은 병원을 찾습니다. 검색 후 자동으로 지도가 이동해요.</p>
+        </div>
+        <div class="map-actions">
+          <button type="button" class="btn primary pill" id="locateMe">현재 위치로 찾기</button>
+          <label class="range">
+            <span>반경 <strong id="radiusValue">4</strong> km</span>
+            <input type="range" id="radiusInput" min="1" max="10" step="1" value="4">
+          </label>
+        </div>
+      </div>
+      <div id="mapContainer"></div>
+      <div class="map-list" id="hospitalList"></div>
+    </section>
+
+    <section id="shop" class="panel shop section">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Shop</p>
+          <h2>추천 용품 피드</h2>
+          <p class="hint">목줄, 하네스, 펫시터 서비스 등 필요한 것만 골랐어요.</p>
+        </div>
+        <button class="btn pill subtle" id="shuffleShop">다른 상품 보기</button>
+      </div>
+      <div class="product-grid" id="productGrid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>
+      <h3>미아찾기</h3>
+      <p>주변 이웃들과 반려동물 실종/제보/복귀 소식을 빠르게 공유하세요.</p>
+    </div>
+    <div class="footer__links">
+      <a href="#report">실종 제보</a>
+      <a href="#messages">게시판</a>
+      <a href="#map">동물병원 지도</a>
+      <a href="#shop">용품</a>
+    </div>
+  </footer>
+
+  <div id="detailModal" class="modal hidden">
+    <div class="modal__backdrop"></div>
+    <div class="modal__dialog">
+      <button class="modal__close" aria-label="close">&times;</button>
+      <div class="modal__img" id="detailPhoto"></div>
+      <div class="modal__body">
+        <div class="chip" id="detailType"></div>
+        <h3 id="detailName"></h3>
+        <p class="report-card__meta" id="detailLastSeen"></p>
+        <p class="report-card__meta" id="detailContact"></p>
+        <p id="detailFeatures"></p>
+        <p class="message__meta" id="detailCreated"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./script.js"></script>
+</body>
+</html>
