@@ -252,6 +252,12 @@ function buildHospitalQuery(lat, lon, radiusMeters) {
       node["amenity"="veterinary"](around:${radiusMeters},${lat},${lon});
       way["amenity"="veterinary"](around:${radiusMeters},${lat},${lon});
       relation["amenity"="veterinary"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="veterinary"](around:${radiusMeters},${lat},${lon});
+      way["healthcare"="veterinary"](around:${radiusMeters},${lat},${lon});
+      relation["healthcare"="veterinary"](around:${radiusMeters},${lat},${lon});
+      node["name"~"동물병원"](around:${radiusMeters},${lat},${lon});
+      way["name"~"동물병원"](around:${radiusMeters},${lat},${lon});
+      relation["name"~"동물병원"](around:${radiusMeters},${lat},${lon});
     );
     out center;`;
 }
