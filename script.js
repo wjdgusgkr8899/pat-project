@@ -5,26 +5,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Initialize Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const reportForm = document.getElementById('reportForm');
-const messageForm = document.getElementById('messageForm');
-const reportList = document.getElementById('reportList');
-const messageList = document.getElementById('messageList');
-const photoInput = document.getElementById('photoInput');
-const photoPreview = document.getElementById('photoPreview');
-const clearReportsBtn = document.getElementById('clearReports');
-const clearMessagesBtn = document.getElementById('clearMessages');
-const productGrid = document.getElementById('productGrid');
-const shuffleShopBtn = document.getElementById('shuffleShop');
-const mapStatus = document.getElementById('mapStatus');
-const locateBtn = document.getElementById('locateMe');
-const searchLocationBtn = document.getElementById('searchLocation');
-const locationInput = document.getElementById('locationInput');
-const radiusInput = document.getElementById('radiusInput');
-const radiusValue = document.getElementById('radiusValue');
-const hospitalList = document.getElementById('hospitalList');
-const navButtons = document.querySelectorAll('.cat-btn');
-const navLinks = document.querySelectorAll('.nav-link');
-const sections = document.querySelectorAll('.section');
+// Global Variables
+let reportForm, messageForm, reportList, messageList, photoInput, photoPreview;
+let clearReportsBtn, clearMessagesBtn, productGrid, shuffleShopBtn, mapStatus;
+let locateBtn, searchLocationBtn, locationInput, radiusInput, radiusValue;
+let hospitalList, navButtons, navLinks, sections;
+let map, markerLayer;
 
 const sampleProducts = [
   { name: '넥밴드 LED 목줄', price: 32000, tag: '야간산책', img: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=600&q=80' },
@@ -37,7 +23,6 @@ const sampleProducts = [
 
 function formatTime(ts) {
   if (!ts) return '';
-  // Supabase timestamps are ISO strings
   return new Intl.DateTimeFormat('ko', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ts));
 }
 
@@ -53,11 +38,11 @@ async function fetchReports() {
     console.error('Error fetching reports:', error);
     return;
   }
-
   renderReportsList(data);
 }
 
 function renderReportsList(reports) {
+  if (!reportList) return;
   reportList.innerHTML = '';
   if (!reports || !reports.length) {
     reportList.innerHTML = '<p class="hint">아직 제보가 없습니다.</p>';
@@ -76,7 +61,6 @@ function renderReportsList(reports) {
         <p class="report-card__meta">마지막 위치: ${item.last_seen || item.lastSeen}</p>
       </div>
     `;
-    // Store data for detail view
     card._reportData = { 
         name: item.name, 
         type: item.type, 
@@ -101,11 +85,11 @@ async function fetchMessages() {
     console.error('Error fetching messages:', error);
     return;
   }
-
   renderMessagesList(data);
 }
 
 function renderMessagesList(messages) {
+  if (!messageList) return;
   messageList.innerHTML = '';
   if (!messages || !messages.length) {
     messageList.innerHTML = '<p class="hint">첫 메시지를 남겨보세요.</p>';
@@ -131,7 +115,6 @@ function renderMessagesList(messages) {
 supabase
   .channel('public:reports')
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reports' }, payload => {
-    // Refresh list on new insert
     fetchReports();
   })
   .subscribe();
@@ -139,15 +122,13 @@ supabase
 supabase
   .channel('public:messages')
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-    // Refresh list on new insert
     fetchMessages();
   })
   .subscribe();
 
+// --- Forms Submission ---
 
-// --- Forms Submission (to Supabase) ---
-
-reportForm?.addEventListener('submit', async (e) => {
+async function handleReportSubmit(e) {
   e.preventDefault();
   const data = new FormData(reportForm);
   const entry = {
@@ -157,11 +138,9 @@ reportForm?.addEventListener('submit', async (e) => {
     contact: data.get('contact') || '',
     features: data.get('features') || '',
     photo: photoPreview.dataset.src || '',
-    // created_at is handled by default in database
   };
 
   const { error } = await supabase.from('reports').insert([entry]);
-
   if (error) {
     console.error('Error adding report:', error);
     alert('제보 등록에 실패했습니다.');
@@ -170,82 +149,26 @@ reportForm?.addEventListener('submit', async (e) => {
     photoPreview.innerHTML = '사진을 선택해주세요';
     delete photoPreview.dataset.src;
   }
-});
+}
 
-messageForm?.addEventListener('submit', async (e) => {
+async function handleMessageSubmit(e) {
   e.preventDefault();
   const data = new FormData(messageForm);
   const entry = {
     nickname: data.get('nickname') || '익명',
     text: data.get('text') || '',
-    // created_at is handled by default in database
   };
 
   const { error } = await supabase.from('messages').insert([entry]);
-
   if (error) {
     console.error('Error adding message:', error);
     alert('메시지 전송에 실패했습니다.');
   } else {
     messageForm.reset();
   }
-});
-
-// Disable "Clear All" for public board security
-clearReportsBtn?.addEventListener('click', () => {
-  alert('공공 게시판의 모든 데이터를 삭제할 수 없습니다. (관리자 문의)');
-});
-clearMessagesBtn?.addEventListener('click', () => {
-  alert('공공 게시판의 모든 데이터를 삭제할 수 없습니다. (관리자 문의)');
-});
-
-photoInput?.addEventListener('change', (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    photoPreview.innerHTML = `<img src="${reader.result}" alt="preview">`;
-    photoPreview.dataset.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-// Detail modal logic
-const modal = document.getElementById('detailModal');
-const modalClose = modal?.querySelector('.modal__close');
-const modalBackdrop = modal?.querySelector('.modal__backdrop');
-const detailPhoto = document.getElementById('detailPhoto');
-const detailType = document.getElementById('detailType');
-const detailName = document.getElementById('detailName');
-const detailLastSeen = document.getElementById('detailLastSeen');
-const detailFeatures = document.getElementById('detailFeatures');
-
-function openDetail(data) {
-  if (!data || !modal) return;
-  detailPhoto.innerHTML = data.photo ? `<img src="${data.photo}" alt="${data.name}">` : '';
-  detailType.textContent = data.type;
-  detailName.textContent = data.name;
-  detailLastSeen.textContent = `마지막 위치: ${data.lastSeen}`;
-  detailFeatures.textContent = data.features || '';
-  modal.classList.remove('hidden');
 }
-function closeDetail() {
-  modal?.classList.add('hidden');
-}
-
-reportList?.addEventListener('click', (e) => {
-  const card = e.target.closest('.report-card');
-  if (!card) return;
-  const data = card._reportData;
-  if (data) openDetail(data);
-});
-modalClose?.addEventListener('click', closeDetail);
-modalBackdrop?.addEventListener('click', closeDetail);
 
 // --- Map Logic ---
-
-let map;
-let markerLayer;
 
 function setMapStatus(text) {
   if (mapStatus) mapStatus.textContent = text;
@@ -297,7 +220,6 @@ function fetchHospitals(lat, lon, radiusKm, label = '선택 위치') {
   if (!map) return;
   setMapStatus(`${label} 주변 검색 중...`);
   markerLayer.clearLayers();
-
   const radiusMeters = radiusKm * 1000;
   
   fetch('https://overpass-api.de/api/interpreter', {
@@ -312,23 +234,15 @@ function fetchHospitals(lat, lon, radiusKm, label = '선택 위치') {
         renderHospitalList([]);
         return;
       }
-
       const list = elements.map(el => {
         const pos = el.center || { lat: el.lat, lon: el.lon };
         const name = el.tags.name || '이름 없는 동물병원';
         const address = el.tags['addr:full'] || el.tags['addr:street'] || '주소 정보 없음';
         const phone = el.tags.phone || el.tags['contact:phone'] || '';
-        
-        // Calculate simple distance
         const dist = Math.sqrt(Math.pow(pos.lat - lat, 2) + Math.pow(pos.lon - lon, 2)) * 111;
-        
-        // Add Marker
-        L.marker([pos.lat, pos.lon]).addTo(markerLayer)
-          .bindPopup(`<strong>${name}</strong><br>${address}<br>${phone}`);
-
+        L.marker([pos.lat, pos.lon]).addTo(markerLayer).bindPopup(`<strong>${name}</strong><br>${address}<br>${phone}`);
         return { name, address, phone, distance: dist, lat: pos.lat, lon: pos.lon };
       }).sort((a, b) => a.distance - b.distance);
-
       setMapStatus(`근처 동물병원 ${list.length}곳을 찾았습니다.`);
       renderHospitalList(list);
     })
@@ -341,16 +255,18 @@ function fetchHospitals(lat, lon, radiusKm, label = '선택 위치') {
 
 function initMap() {
   const fallbackCenter = { lat: 37.5665, lng: 126.9780 };
+  const container = document.getElementById('mapContainer');
+  if (!container) return;
   map = L.map('mapContainer', { zoomControl: false }).setView([fallbackCenter.lat, fallbackCenter.lng], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
 
-  radiusInput.addEventListener('input', (e) => {
-    radiusValue.textContent = e.target.value;
+  radiusInput?.addEventListener('input', (e) => {
+    if (radiusValue) radiusValue.textContent = e.target.value;
   });
 
-  locateBtn.addEventListener('click', () => {
+  locateBtn?.addEventListener('click', () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -362,14 +278,14 @@ function initMap() {
     );
   });
 
-  searchLocationBtn.addEventListener('click', () => {
+  searchLocationBtn?.addEventListener('click', () => {
     const q = locationInput.value.trim();
     if (!q) return;
     fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`)
       .then(r => r.json())
       .then(data => {
         if (!data.length) return alert('검색 결과가 없습니다.');
-        const { lat, lon, display_name } = data[0];
+        const { lat, lon } = data[0];
         const flat = parseFloat(lat);
         const flon = parseFloat(lon);
         map.setView([flat, flon], 14);
@@ -377,20 +293,13 @@ function initMap() {
       });
   });
 
-  // Default: Seoul
   fetchHospitals(fallbackCenter.lat, fallbackCenter.lng, 4, '서울');
 }
 
-// Shop Logic
+// --- Shop Logic ---
 async function fetchProducts() {
-  // Try to fetch from DB, fallback to sample
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('id', { ascending: true });
-    
+  const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
   if (error || !data || !data.length) {
-    // If table is empty or error, use sample products
     renderProducts(sampleProducts);
   } else {
     renderProducts(data);
@@ -414,32 +323,84 @@ function renderProducts(list) {
   });
 }
 
+// --- UI Logic ---
+
 function activateSection(targetId) {
+  if (!targetId || !sections) return;
   sections.forEach(sec => sec.classList.toggle('active', sec.id === targetId));
   navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === targetId));
   if (targetId === 'map' && map) {
-    setTimeout(() => map.invalidateSize(), 100);
+    setTimeout(() => map.invalidateSize(), 200);
   }
 }
 
-// Init
+// Initialize everything after DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  // Select all elements
+  reportForm = document.getElementById('reportForm');
+  messageForm = document.getElementById('messageForm');
+  reportList = document.getElementById('reportList');
+  messageList = document.getElementById('messageList');
+  photoInput = document.getElementById('photoInput');
+  photoPreview = document.getElementById('photoPreview');
+  clearReportsBtn = document.getElementById('clearReports');
+  clearMessagesBtn = document.getElementById('clearMessages');
+  productGrid = document.getElementById('productGrid');
+  shuffleShopBtn = document.getElementById('shuffleShop');
+  mapStatus = document.getElementById('mapStatus');
+  locateBtn = document.getElementById('locateMe');
+  searchLocationBtn = document.getElementById('searchLocation');
+  locationInput = document.getElementById('locationInput');
+  radiusInput = document.getElementById('radiusInput');
+  radiusValue = document.getElementById('radiusValue');
+  hospitalList = document.getElementById('hospitalList');
+  navButtons = document.querySelectorAll('.cat-btn, .nav-link');
+  navLinks = document.querySelectorAll('.footer__links a');
+  sections = document.querySelectorAll('.section');
+
+  // Init sub-modules
   initMap();
-  
-  // Initial Fetch
   fetchReports();
   fetchMessages();
   fetchProducts();
 
-  navButtons.forEach(btn => btn.addEventListener('click', () => activateSection(btn.dataset.target)));
-  navLinks.forEach(link => link.addEventListener('click', (e) => {
-    const target = link.dataset.target || link.getAttribute('href')?.replace('#', '');
-    if (target) {
-      e.preventDefault();
-      activateSection(target);
-    }
-  }));
+  // Event Listeners
+  reportForm?.addEventListener('submit', handleReportSubmit);
+  messageForm?.addEventListener('submit', handleMessageSubmit);
   
-  // Mix sample products on shuffle (since we don't shuffle DB yet)
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      if (target) activateSection(target);
+    });
+  });
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        e.preventDefault();
+        activateSection(href.substring(1));
+      }
+    });
+  });
+
   shuffleShopBtn?.addEventListener('click', () => renderProducts([...sampleProducts].sort(() => Math.random() - 0.5)));
+
+  photoInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      photoPreview.innerHTML = `<img src="${reader.result}" alt="preview">`;
+      photoPreview.dataset.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Modal close handlers
+  const modalClose = document.querySelector('.modal__close');
+  const modalBackdrop = document.querySelector('.modal__backdrop');
+  modalClose?.addEventListener('click', () => document.getElementById('detailModal')?.classList.add('hidden'));
+  modalBackdrop?.addEventListener('click', () => document.getElementById('detailModal')?.classList.add('hidden'));
 });
