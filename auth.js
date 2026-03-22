@@ -23,6 +23,7 @@ const authWrapper = document.getElementById('auth-wrapper');
 const otpContainer = document.getElementById('otp-container');
 const otpInput = document.getElementById('otp-code');
 const verifyBtn = document.getElementById('verify-btn');
+const resendBtn = document.getElementById('resend-btn');
 
 let isLoginMode = true;
 let tempSignupData = null; // 인증 전 임시 데이터 저장
@@ -56,7 +57,8 @@ if (toggleMode) {
   toggleMode.addEventListener('click', (e) => {
     e.preventDefault();
     isLoginMode = !isLoginMode;
-    otpContainer.style.display = 'none'; // 전환 시 인증창 숨김
+    otpContainer.style.display = 'none'; 
+    submitBtn.style.display = 'block';
     
     if (isLoginMode) {
       authWrapper.classList.remove('signup-mode');
@@ -126,7 +128,7 @@ if (authForm) {
         // 가입 성공 후 인증번호 입력창 표시
         tempSignupData = { id: authData.user.id, username, email };
         otpContainer.style.display = 'block';
-        submitBtn.style.display = 'none'; // 가입 버튼 숨기고 인증 유도
+        submitBtn.style.display = 'none'; 
         alert('이메일로 전송된 6자리 인증번호를 입력해 주세요.');
       }
     } catch (error) {
@@ -164,13 +166,39 @@ if (verifyBtn) {
       if (dbError) console.error('프로필 저장 에러:', dbError);
 
       alert('인증이 완료되었습니다! 이제 로그인이 가능합니다.');
-      window.location.reload(); // 로그인 모드로 복귀
+      window.location.reload(); 
 
     } catch (error) {
       alert(`인증 실패: ${error.message}`);
     } finally {
       verifyBtn.disabled = false;
       verifyBtn.textContent = '인증 완료';
+    }
+  });
+}
+
+// 5. 인증번호 재전송 처리
+if (resendBtn) {
+  resendBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!tempSignupData) return;
+
+    resendBtn.textContent = '재전송 중...';
+    resendBtn.style.pointerEvents = 'none';
+
+    try {
+      const { error } = await supabaseClient.auth.resend({
+        type: 'signup',
+        email: tempSignupData.email,
+      });
+
+      if (error) throw error;
+      alert('인증번호가 재전송되었습니다. 이메일을 확인해 주세요!');
+    } catch (error) {
+      alert(`재전송 실패: ${error.message}`);
+    } finally {
+      resendBtn.textContent = '재전송하기';
+      resendBtn.style.pointerEvents = 'auto';
     }
   });
 }
