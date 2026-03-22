@@ -216,6 +216,16 @@
             <input type="password" id="password" required placeholder=" ">
             <label for="password">비밀번호</label>
           </div>
+
+          <!-- 인증번호 입력창 (처음엔 숨김) -->
+          <div id="otp-container" style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+            <p style="font-size: 0.85rem; color: var(--primary-strong); font-weight: 700; margin-bottom: 10px;">이메일로 전송된 6자리 번호를 입력하세요.</p>
+            <div class="input-group">
+              <input type="text" id="otp-code" placeholder=" ">
+              <label for="otp-code">인증번호 6자리</label>
+            </div>
+            <button type="button" class="auth-btn" id="verify-btn" style="background: #7ad7f0; box-shadow: 0 10px 20px rgba(122, 215, 240, 0.2);">인증 완료</button>
+          </div>
           
           <button type="submit" class="auth-btn" id="submit-btn">로그인</button>
         </form>

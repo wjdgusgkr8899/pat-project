@@ -19,12 +19,17 @@ const authActionBtn = document.getElementById('auth-action-btn');
 const userEmailSpan = document.getElementById('user-email');
 const authWrapper = document.getElementById('auth-wrapper');
 
+// OTP Elements
+const otpContainer = document.getElementById('otp-container');
+const otpInput = document.getElementById('otp-code');
+const verifyBtn = document.getElementById('verify-btn');
+
 let isLoginMode = true;
+let tempSignupData = null; // 인증 전 임시 데이터 저장
 
 // 1. 초기 실행: 로그인 상태 확인
 async function checkUser() {
   const { data: { user } } = await supabaseClient.auth.getUser();
-  
   if (user) {
     if (authActionBtn) {
       authActionBtn.textContent = '로그아웃';
@@ -51,6 +56,8 @@ if (toggleMode) {
   toggleMode.addEventListener('click', (e) => {
     e.preventDefault();
     isLoginMode = !isLoginMode;
+    otpContainer.style.display = 'none'; // 전환 시 인증창 숨김
+    
     if (isLoginMode) {
       authWrapper.classList.remove('signup-mode');
       authTitle.textContent = '로그인';
@@ -87,18 +94,14 @@ if (authForm) {
     try {
       if (isLoginMode) {
         // [로그인 로직]
-        // 1. profiles 테이블에서 아이디로 이메일 찾기
         const { data: profile, error: profileError } = await supabaseClient
           .from('profiles')
           .select('email')
           .eq('username', username)
           .single();
         
-        if (profileError || !profile) {
-          throw new Error('존재하지 않는 아이디입니다.');
-        }
+        if (profileError || !profile) throw new Error('존재하지 않는 아이디입니다.');
 
-        // 2. 찾은 이메일로 로그인 시도
         const { data, error: loginError } = await supabaseClient.auth.signInWithPassword({
           email: profile.email,
           password: password
@@ -109,42 +112,65 @@ if (authForm) {
         
       } else {
         // [회원가입 로직]
-        // 1. 먼저 아이디 중복 체크
-        const { data: existing } = await supabaseClient
-          .from('profiles')
-          .select('username')
-          .eq('username', username)
-          .single();
-        
+        const { data: existing } = await supabaseClient.from('profiles').select('username').eq('username', username).single();
         if (existing) throw new Error('이미 사용 중인 아이디입니다.');
 
-        // 2. Auth 회원가입
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
           email: email,
           password: password,
-          options: {
-            data: { username: username }
-          }
+          options: { data: { username: username } }
         });
         
         if (authError) throw authError;
 
-        // 3. profiles 테이블에 아이디-이메일 매핑 저장
-        if (authData.user) {
-          const { error: dbError } = await supabaseClient
-            .from('profiles')
-            .insert([{ id: authData.user.id, username: username, email: email }]);
-          
-          if (dbError) console.error('프로필 저장 에러:', dbError);
-        }
-        
-        alert('회원가입이 완료되었습니다! 이메일 인증 후 로그인해 주세요.');
+        // 가입 성공 후 인증번호 입력창 표시
+        tempSignupData = { id: authData.user.id, username, email };
+        otpContainer.style.display = 'block';
+        submitBtn.style.display = 'none'; // 가입 버튼 숨기고 인증 유도
+        alert('이메일로 전송된 6자리 인증번호를 입력해 주세요.');
       }
     } catch (error) {
       alert(`에러: ${error.message}`);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = isLoginMode ? '로그인' : '가입하기';
+      if (isLoginMode) submitBtn.textContent = '로그인';
+    }
+  });
+}
+
+// 4. 인증번호 확인 버튼 처리
+if (verifyBtn) {
+  verifyBtn.addEventListener('click', async () => {
+    const token = otpInput.value.trim();
+    if (!token || !tempSignupData) return;
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = '인증 중...';
+
+    try {
+      const { data, error } = await supabaseClient.auth.verifyOtp({
+        email: tempSignupData.email,
+        token: token,
+        type: 'signup'
+      });
+
+      if (error) throw error;
+
+      // 인증 성공 시 profiles 테이블에 저장
+      const { error: dbError } = await supabaseClient
+        .from('profiles')
+        .insert([{ id: tempSignupData.id, username: tempSignupData.username, email: tempSignupData.email }]);
+      
+      if (dbError) console.error('프로필 저장 에러:', dbError);
+
+      alert('인증이 완료되었습니다! 이제 로그인이 가능합니다.');
+      window.location.reload(); // 로그인 모드로 복귀
+
+    } catch (error) {
+      alert(`인증 실패: ${error.message}`);
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = '인증 완료';
     }
   });
 }
