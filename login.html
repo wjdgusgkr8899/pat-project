@@ -203,8 +203,13 @@
         
         <form id="auth-form">
           <div class="input-group">
-            <input type="email" id="email" required placeholder=" ">
-            <label for="email">이메일 주소</label>
+            <input type="text" id="username" required placeholder=" ">
+            <label for="username">아이디 (이메일)</label>
+          </div>
+          
+          <div class="input-group" id="email-group" style="display: none;">
+            <input type="email" id="email" placeholder=" ">
+            <label for="email">이메일 (인증용)</label>
           </div>
           
           <div class="input-group">
