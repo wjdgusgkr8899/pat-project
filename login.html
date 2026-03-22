@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 | 멍.찾.사</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: var(--bg-soft, #f8f9fa);
+      margin: 0;
+    }
+    .auth-container {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .auth-container h2 {
+      margin-bottom: 0.5rem;
+      color: var(--primary-color, #4a90e2);
+    }
+    .auth-container p {
+      margin-bottom: 2rem;
+      color: #666;
+    }
+    .form-group {
+      text-align: left;
+      margin-bottom: 1.2rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color, #4a90e2);
+    }
+    .auth-btn {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary-color, #4a90e2);
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .auth-btn:active {
+      transform: scale(0.98);
+    }
+    .switch-mode {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .switch-mode a {
+      color: var(--primary-color, #4a90e2);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .back-home {
+      margin-top: 2rem;
+      display: inline-block;
+      text-decoration: none;
+      color: #999;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-bubbles"></div>
+  <div class="auth-container">
+    <h2 id="auth-title">로그인</h2>
+    <p id="auth-desc">멍.찾.사에 오신 것을 환영합니다!</p>
+    
+    <form id="auth-form">
+      <div class="form-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" required placeholder="example@email.com">
+      </div>
+      <div class="form-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" required placeholder="6자 이상 입력">
+      </div>
+      <button type="submit" class="auth-btn" id="submit-btn">로그인</button>
+    </form>
+
+    <div class="switch-mode">
+      <span id="toggle-text">계정이 없으신가요?</span>
+      <a href="#" id="toggle-mode">회원가입</a>
+    </div>
+
+    <a href="./index.html" class="back-home">홈으로 돌아가기</a>
+  </div>
+
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./auth.js"></script>
+</body>
+</html>

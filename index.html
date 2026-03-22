@@ -13,6 +13,10 @@
 <body>
   <div class="bg-bubbles"></div>
   <header class="hero">
+    <div class="auth-status-bar" style="position: absolute; top: 1rem; right: 1rem; z-index: 100;">
+      <span id="user-email" style="margin-right: 10px; font-weight: 600; font-size: 0.9rem; color: #555;"></span>
+      <button id="auth-action-btn" class="btn pill subtle" onclick="location.href='./login.html'">로그인</button>
+    </div>
     <div class="hero__text">
       <p class="eyebrow">미아 + 발견 + 연결</p>
       <h1>멍.찾.사</h1>
@@ -175,7 +179,9 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./auth.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>
