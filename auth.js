@@ -31,7 +31,6 @@ async function checkUser() {
       authActionBtn.onclick = handleLogout;
     }
     if (userEmailSpan) {
-      // 메타데이터에 저장된 아이디가 있으면 표시, 없으면 이메일 앞부분 표시
       const displayId = user.user_metadata?.username || user.email.split('@')[0];
       userEmailSpan.textContent = `${displayId}님 환영합니다!`;
     }
@@ -52,7 +51,6 @@ if (toggleMode) {
   toggleMode.addEventListener('click', (e) => {
     e.preventDefault();
     isLoginMode = !isLoginMode;
-    
     if (isLoginMode) {
       authWrapper.classList.remove('signup-mode');
       authTitle.textContent = '로그인';
@@ -79,8 +77,8 @@ if (toggleMode) {
 if (authForm) {
   authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = usernameInput.value;
-    const email = emailInput.value;
+    const username = usernameInput.value.trim();
+    const email = emailInput.value.trim();
     const password = passwordInput.value;
     
     submitBtn.disabled = true;
@@ -89,42 +87,58 @@ if (authForm) {
     try {
       if (isLoginMode) {
         // [로그인 로직]
-        // Supabase는 기본적으로 이메일 로그인이므로, 
-        // 사용자가 아이디 칸에 이메일을 넣었는지 확인하거나 
-        // 별도의 프로필 테이블에서 아이디로 이메일을 찾는 과정이 필요합니다.
-        // 여기서는 편의상 아이디 칸에 이메일을 입력하거나, 아이디를 이메일처럼 취급합니다.
+        // 1. profiles 테이블에서 아이디로 이메일 찾기
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('email')
+          .eq('username', username)
+          .single();
         
-        let loginEmail = username;
-        // 만약 아이디에 @가 없다면, 가입 시 사용한 이메일을 찾아야 하지만 
-        // 클라이언트 단에서는 보안상 바로 찾을 수 없으므로 
-        // 이메일 형식이 아닐 경우 경고를 줍니다. (실제 서비스에서는 프로필 테이블 연동 필요)
-        if (!username.includes('@')) {
-          // 임시 해결책: 아이디로 가입했더라도 로그인 시에는 이메일을 입력하도록 안내하거나
-          // 내부적으로 특정 도메인을 붙여서 처리하는 방식이 있으나, 
-          // 가장 정확한 방법은 이메일로 로그인하는 것입니다.
-          // 사용자 경험을 위해 "아이디(이메일)"을 입력받도록 안내를 수정하겠습니다.
+        if (profileError || !profile) {
+          throw new Error('존재하지 않는 아이디입니다.');
         }
-        
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email: loginEmail,
+
+        // 2. 찾은 이메일로 로그인 시도
+        const { data, error: loginError } = await supabaseClient.auth.signInWithPassword({
+          email: profile.email,
           password: password
         });
         
-        if (error) throw error;
+        if (loginError) throw loginError;
         if (data.user) window.location.href = './index.html';
         
       } else {
         // [회원가입 로직]
-        const { data, error } = await supabaseClient.auth.signUp({
+        // 1. 먼저 아이디 중복 체크
+        const { data: existing } = await supabaseClient
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .single();
+        
+        if (existing) throw new Error('이미 사용 중인 아이디입니다.');
+
+        // 2. Auth 회원가입
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
           email: email,
           password: password,
           options: {
-            data: { username: username } // 메타데이터에 아이디 저장
+            data: { username: username }
           }
         });
         
-        if (error) throw error;
-        alert('회원가입 요청이 전송되었습니다! 이메일 인증 후 해당 이메일로 로그인해 주세요.');
+        if (authError) throw authError;
+
+        // 3. profiles 테이블에 아이디-이메일 매핑 저장
+        if (authData.user) {
+          const { error: dbError } = await supabaseClient
+            .from('profiles')
+            .insert([{ id: authData.user.id, username: username, email: email }]);
+          
+          if (dbError) console.error('프로필 저장 에러:', dbError);
+        }
+        
+        alert('회원가입이 완료되었습니다! 이메일 인증 후 로그인해 주세요.');
       }
     } catch (error) {
       alert(`에러: ${error.message}`);
