@@ -9,114 +9,222 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <style>
+    :root {
+      --primary: #ff8db3;
+      --primary-strong: #ff5f97;
+      --bg: #fdf5ff;
+    }
+
     body {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: var(--bg-soft, #f8f9fa);
       margin: 0;
+      background: var(--bg);
+      overflow: hidden;
     }
-    .auth-container {
+
+    .auth-wrapper {
+      display: flex;
+      width: 900px;
+      height: 600px;
       background: white;
-      padding: 2.5rem;
-      border-radius: 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      border-radius: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      overflow: hidden;
+      position: relative;
+      animation: slideInUp 0.8s ease-out;
+    }
+
+    @keyframes slideInUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* 왼쪽: 강아지 사진 섹션 */
+    .auth-image {
+      flex: 1.1;
+      background: url('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;
+      position: relative;
+      animation: slideFromLeft 1s ease-out;
+    }
+
+    @keyframes slideFromLeft {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    .auth-image::after {
+      content: "멍.찾.사";
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      color: white;
+      font-family: 'Baloo 2', sans-serif;
+      font-size: 3rem;
+      font-weight: 700;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    /* 오른쪽: 폼 섹션 */
+    .auth-content {
+      flex: 0.9;
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      background: white;
+      z-index: 2;
+    }
+
+    .form-container {
       width: 100%;
-      max-width: 400px;
-      text-align: center;
+      transition: all 0.5s ease;
     }
-    .auth-container h2 {
-      margin-bottom: 0.5rem;
-      color: var(--primary-color, #4a90e2);
+
+    /* 회원가입 모드일 때 애니메이션 */
+    .auth-wrapper.signup-mode .form-container {
+      animation: slideFromRight 0.5s ease-out;
     }
-    .auth-container p {
-      margin-bottom: 2rem;
-      color: #666;
+
+    @keyframes slideFromRight {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
-    .form-group {
-      text-align: left;
-      margin-bottom: 1.2rem;
+
+    h2 {
+      font-size: 2.5rem;
+      color: var(--primary-strong);
+      margin-bottom: 10px;
     }
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-      font-size: 0.9rem;
+
+    p.subtitle {
+      color: #888;
+      margin-bottom: 40px;
     }
-    .form-group input {
+
+    /* 플로팅 라벨 입력창 디자인 */
+    .input-group {
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    .input-group input {
       width: 100%;
-      padding: 0.8rem;
-      border: 2px solid #eee;
-      border-radius: 12px;
+      padding: 15px 5px;
+      border: none;
+      border-bottom: 2px solid #eee;
+      outline: none;
+      background: none;
+      font-size: 1rem;
       font-family: inherit;
       transition: border-color 0.3s;
     }
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--primary-color, #4a90e2);
+
+    .input-group label {
+      position: absolute;
+      top: 15px;
+      left: 5px;
+      color: #999;
+      pointer-events: none;
+      transition: all 0.3s ease;
     }
+
+    /* 입력창에 글자가 있거나 포커스 되었을 때 라벨 이동 */
+    .input-group input:focus ~ label,
+    .input-group input:not(:placeholder-shown) ~ label {
+      top: -10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-strong);
+    }
+
+    .input-group input:focus {
+      border-bottom-color: var(--primary-strong);
+    }
+
     .auth-btn {
       width: 100%;
-      padding: 1rem;
-      border: none;
-      border-radius: 12px;
-      background: var(--primary-color, #4a90e2);
+      padding: 16px;
+      background: var(--primary-strong);
       color: white;
+      border: none;
+      border-radius: 15px;
+      font-size: 1.1rem;
       font-weight: 700;
-      font-size: 1rem;
       cursor: pointer;
-      margin-top: 1rem;
-      transition: transform 0.2s, opacity 0.2s;
+      box-shadow: 0 10px 20px rgba(255, 95, 151, 0.2);
+      transition: transform 0.2s, background 0.2s;
     }
-    .auth-btn:active {
-      transform: scale(0.98);
+
+    .auth-btn:hover {
+      background: #e54d85;
+      transform: translateY(-2px);
     }
+
     .switch-mode {
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.95rem;
     }
+
     .switch-mode a {
-      color: var(--primary-color, #4a90e2);
-      text-decoration: none;
+      color: var(--primary-strong);
       font-weight: 700;
+      margin-left: 8px;
     }
+
     .back-home {
-      margin-top: 2rem;
-      display: inline-block;
-      text-decoration: none;
-      color: #999;
-      font-size: 0.85rem;
+      display: block;
+      margin-top: 40px;
+      text-align: center;
+      color: #ccc;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 850px) {
+      .auth-image { display: none; }
+      .auth-wrapper { width: 450px; }
     }
   </style>
 </head>
 <body>
   <div class="bg-bubbles"></div>
-  <div class="auth-container">
-    <h2 id="auth-title">로그인</h2>
-    <p id="auth-desc">멍.찾.사에 오신 것을 환영합니다!</p>
+  
+  <div class="auth-wrapper" id="auth-wrapper">
+    <div class="auth-image"></div>
     
-    <form id="auth-form">
-      <div class="form-group">
-        <label for="email">이메일</label>
-        <input type="email" id="email" required placeholder="example@email.com">
-      </div>
-      <div class="form-group">
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" required placeholder="6자 이상 입력">
-      </div>
-      <button type="submit" class="auth-btn" id="submit-btn">로그인</button>
-    </form>
+    <div class="auth-content">
+      <div class="form-container" id="form-container">
+        <h2 id="auth-title">로그인</h2>
+        <p class="subtitle" id="auth-desc">멍.찾.사에 오신 것을 환영합니다!</p>
+        
+        <form id="auth-form">
+          <div class="input-group">
+            <input type="email" id="email" required placeholder=" ">
+            <label for="email">이메일 주소</label>
+          </div>
+          
+          <div class="input-group">
+            <input type="password" id="password" required placeholder=" ">
+            <label for="password">비밀번호</label>
+          </div>
+          
+          <button type="submit" class="auth-btn" id="submit-btn">로그인</button>
+        </form>
 
-    <div class="switch-mode">
-      <span id="toggle-text">계정이 없으신가요?</span>
-      <a href="#" id="toggle-mode">회원가입</a>
+        <div class="switch-mode">
+          <span id="toggle-text">계정이 없으신가요?</span>
+          <a href="#" id="toggle-mode">회원가입</a>
+        </div>
+
+        <a href="./index.html" class="back-home">홈으로 돌아가기</a>
+      </div>
     </div>
-
-    <a href="./index.html" class="back-home">홈으로 돌아가기</a>
   </div>
 
-  <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./auth.js"></script>
 </body>

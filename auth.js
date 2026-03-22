@@ -52,13 +52,17 @@ if (toggleMode) {
     e.preventDefault();
     isLoginMode = !isLoginMode;
     
+    const wrapper = document.getElementById('auth-wrapper');
+    
     if (isLoginMode) {
+      wrapper.classList.remove('signup-mode');
       authTitle.textContent = '로그인';
       authDesc.textContent = '멍.찾.사에 오신 것을 환영합니다!';
       submitBtn.textContent = '로그인';
       toggleText.textContent = '계정이 없으신가요?';
       toggleMode.textContent = '회원가입';
     } else {
+      wrapper.classList.add('signup-mode');
       authTitle.textContent = '회원가입';
       authDesc.textContent = '새로운 계정을 만들고 반려동물을 찾아보세요!';
       submitBtn.textContent = '가입하기';
