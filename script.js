@@ -330,8 +330,12 @@
     if (!targetId || !sections) return;
     sections.forEach(sec => sec.classList.toggle('active', sec.id === targetId));
     navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.target === targetId));
+    
+    // 지도가 포함된 섹션일 경우 크기 재계산 (매우 중요)
     if (targetId === 'map' && map) {
-      setTimeout(() => map.invalidateSize(), 200);
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 300);
     }
   }
 
@@ -355,7 +359,7 @@
     radiusInput = document.getElementById('radiusInput');
     radiusValue = document.getElementById('radiusValue');
     hospitalList = document.getElementById('hospitalList');
-    navButtons = document.querySelectorAll('.cat-btn, .nav-link');
+    navButtons = document.querySelectorAll('.cat-btn, .nav-link, .hero__actions .btn');
     navLinks = document.querySelectorAll('.footer__links a');
     sections = document.querySelectorAll('.section');
 
