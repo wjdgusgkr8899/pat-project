@@ -18,6 +18,7 @@ const toggleText = document.getElementById('toggle-text');
 const authActionBtn = document.getElementById('auth-action-btn');
 const userEmailSpan = document.getElementById('user-email');
 const authWrapper = document.getElementById('auth-wrapper');
+const googleBtn = document.getElementById('google-btn');
 
 // OTP Elements
 const otpContainer = document.getElementById('otp-container');
@@ -206,6 +207,19 @@ if (resendBtn) {
 async function handleLogout() {
   await supabaseClient.auth.signOut();
   window.location.reload();
+}
+
+// 6. Google 로그인 처리
+if (googleBtn) {
+  googleBtn.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/pet/index.html'
+      }
+    });
+    if (error) alert(error.message);
+  });
 }
 
 checkUser();
